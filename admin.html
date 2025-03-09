@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            margin: auto;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        input,
+        select,
+        button {
+            width: 95%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #007BFF;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .edit-btn {
+            background: #28a745;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Add New Question</h2>
+        <input type="text" id="question" placeholder="Enter Question">
+        <input type="text" id="opt1" placeholder="Option 1">
+        <input type="text" id="opt2" placeholder="Option 2">
+        <input type="text" id="opt3" placeholder="Option 3">
+        <input type="text" id="opt4" placeholder="Option 4">
+        <select id="answer">
+            <option value="" disabled selected>Select Correct Answer</option>
+            <option value="opt1">Option 1</option>
+            <option value="opt2">Option 2</option>
+            <option value="opt3">Option 3</option>
+            <option value="opt4">Option 4</option>
+        </select>
+        <button id="addButton" onclick="addQuestion()">Add Question</button>
+    </div>
+
+    <div class="container">
+        <h2>All Questions</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Options</th>
+                    <th>Answer</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="questionList"></tbody>
+        </table>
+    </div>
+
+    <div class="container">
+        <h2>Quiz Leaderboard</h2>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody id="responses"></tbody>
+        </table>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyBXJ_RnfjUDi7qPDATWVnS5lSFw6jVRYgo",
+            authDomain: "shopping-e284c.firebaseapp.com",
+            databaseURL: "https://shopping-e284c-default-rtdb.firebaseio.com",
+            projectId: "shopping-e284c",
+            storageBucket: "shopping-e284c.appspot.com",
+            messagingSenderId: "248274428739",
+            appId: "1:248274428739:web:fc30dd9eb1ef83f610c5f6",
+            measurementId: "G-ZXZCK9BW7T"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.database();
+
+        function addQuestion() {
+            let question = document.getElementById("question").value;
+            let opt1 = document.getElementById("opt1").value;
+            let opt2 = document.getElementById("opt2").value;
+            let opt3 = document.getElementById("opt3").value;
+            let opt4 = document.getElementById("opt4").value;
+            let answer = document.getElementById("answer").value;
+
+            if (!question || !opt1 || !opt2 || !opt3 || !opt4 || !answer) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            db.ref("questions").push({ question, opt1, opt2, opt3, opt4, answer })
+                .then(() => { alert("Question Added!"); loadQuestions(); })
+                .catch(error => console.error(error));
+        }
+
+        function loadQuestions() {
+            let questionContainer = document.getElementById("questionList");
+            questionContainer.innerHTML = "";
+
+            db.ref("questions").once("value", (snapshot) => {
+                snapshot.forEach((childSnapshot) => {
+                    let q = childSnapshot.val();
+                    let id = childSnapshot.key;
+
+                    let row = `<tr>
+                        <td>${q.question}</td>
+                        <td>${q.opt1}, ${q.opt2}, ${q.opt3}, ${q.opt4}</td>
+                        <td>${q[q.answer]}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editQuestion('${id}', '${q.question}', '${q.opt1}', '${q.opt2}', '${q.opt3}', '${q.opt4}', '${q.answer}')">Edit</button>
+                            <button class="delete-btn" onclick="deleteQuestion('${id}')">Delete</button>
+                        </td>
+                    </tr>`;
+                    questionContainer.innerHTML += row;
+                });
+            });
+        }
+
+        function editQuestion(id, question, opt1, opt2, opt3, opt4, answer) {
+            document.getElementById("question").value = question;
+            document.getElementById("opt1").value = opt1;
+            document.getElementById("opt2").value = opt2;
+            document.getElementById("opt3").value = opt3;
+            document.getElementById("opt4").value = opt4;
+            document.getElementById("answer").value = answer;
+
+            let addButton = document.getElementById("addButton");
+            addButton.innerText = "Update Question";
+            addButton.onclick = function () {
+                db.ref("questions/" + id).set({ question, opt1, opt2, opt3, opt4, answer })
+                    .then(() => { alert("Question Updated!"); loadQuestions(); })
+                    .catch(error => console.error(error));
+
+                addButton.innerText = "Add Question";
+                addButton.onclick = addQuestion;
+            };
+        }
+
+        function deleteQuestion(id) {
+            if (confirm("Are you sure?")) {
+                db.ref("questions/" + id).remove()
+                    .then(() => { alert("Deleted!"); loadQuestions(); })
+                    .catch(error => console.error(error));
+            }
+        }
+
+    
+    function loadResponses() {
+        let responseContainer = document.getElementById("responses");
+        responseContainer.innerHTML = "";
+
+        db.ref("responses").once("value", (snapshot) => {
+            let userScores = [];
+
+            snapshot.forEach((childSnapshot) => {
+                let username = childSnapshot.key;
+                let score = childSnapshot.val().score;
+                userScores.push({ username, score });
+            });
+
+            userScores.sort((a, b) => b.score - a.score);
+
+            userScores.forEach((user, index) => {
+                let row = `<tr>
+                    <td>${index + 1}</td>
+                    <td>${user.username}</td>
+                    <td>${user.score}</td>
+                </tr>`;
+                responseContainer.innerHTML += row;
+            });
+        });
+    }
+
+
+
+
+        window.onload = function () {
+            loadQuestions();
+            loadResponses();
+        };
+    </script>
+
+</body>
+
+</html>

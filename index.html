@@ -1,174 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 600px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            margin: auto;
-        }
-
-        h2 {
-            margin-bottom: 10px;
-        }
-
-        .question-container {
-            text-align: left;
-            margin: 20px 0;
-        }
-
-        label {
-            display: block;
-            padding: 5px;
-            cursor: pointer;
-        }
-
-        input[type="radio"] {
-            margin-right: 10px;
-        }
-
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border: none;
-            border-radius: 5px;
-            background: #007BFF;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        #username-container {
-            margin-bottom: 20px;
-        }
-
-        input[type="text"] {
-            width: 90%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Online Quiz</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
+    .container { max-width: 800px; background: #fff; padding: 20px; margin: auto; border-radius: 8px; box-shadow: 0 0 10px #ccc; }
+    h2 { text-align: center; }
+    .question { margin-bottom: 20px; text-align: left; }
+    .question h4 { margin-bottom: 8px; }
+    label { display: block; margin-bottom: 4px; cursor: pointer; }
+    input[type="text"] { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
+    button { padding: 10px 20px; background: #007BFF; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+    button:disabled { background: #999; cursor: not-allowed; }
+    #timer { font-size: 18px; color: red; margin-bottom: 15px; text-align: center; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Welcome to the Quiz</h2>
-        <div id="username-container">
-            <input type="text" id="username" placeholder="Enter your name">
-            <button onclick="startQuiz()">Start Quiz</button>
-        </div>
-        <div id="quiz-container" style="display: none;"></div>
-        <button id="submitBtn" onclick="submitQuiz()" style="display: none;">Submit Answers</button>
+  <div class="container">
+    <h2>Online Quiz</h2>
+    <div id="start-screen">
+      <input type="text" id="username" placeholder="Enter your name" />
+      <input type="text" id="roll" placeholder="Enter your roll number" />
+      <button id="startBtn">Start Quiz</button>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script>
-        
-        let warned = false;
-        let quizSubmitted = false;
-        
-        document.addEventListener("visibilitychange", function() {
-            if (document.hidden) {
-                if (warned) {
-                    submitQuize();
-                } else {
-                    alert("Warning: Leaving or switching tabs will submit your quiz next time!");
-                    warned = true;
-                }
-            }
+    <div id="quiz-screen" style="display:none;">
+      <div id="timer"></div>
+      <div id="quizContainer"></div>
+      <button id="submitBtn">Submit Answers</button>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    // --- CONFIG & INIT ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXJ_RnfjUDi7qPDATWVnS5lSFw6jVRYgo",
+            authDomain: "shopping-e284c.firebaseapp.com",
+            databaseURL: "https://shopping-e284c-default-rtdb.firebaseio.com",
+            projectId: "shopping-e284c",
+            storageBucket: "shopping-e284c.appspot.com",
+            messagingSenderId: "248274428739",
+            appId: "1:248274428739:web:fc30dd9eb1ef83f610c5f6",
+            measurementId: "G-ZXZCK9BW7T"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- STATE ---
+    let questions = [];
+    let warned = false;
+    let quizSubmitted = false;
+    let timerInterval = null;
+    const DURATION = 70; // seconds
+
+    // --- UI REFS ---
+    const startScreen = document.getElementById('start-screen');
+    const quizScreen  = document.getElementById('quiz-screen');
+    const startBtn    = document.getElementById('startBtn');
+    const submitBtn   = document.getElementById('submitBtn');
+    const quizCon     = document.getElementById('quizContainer');
+    const timerEl     = document.getElementById('timer');
+
+    // --- VISIBILITY WARNING ---
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (warned) return autoSubmit();
+        alert('Warning: switching tabs will auto-submit next time!');
+        warned = true;
+      }
+    });
+
+    // --- START QUIZ ---
+    startBtn.addEventListener('click', () => {
+      const name = document.getElementById('username').value.trim();
+      const roll = document.getElementById('roll').value.trim();
+      if (!name || !roll) {
+        return alert('Name & Roll Number required.');
+      }
+      const lockKey = `quiz_done_${name}_${roll}`;
+      if (localStorage.getItem(lockKey)) {
+        return alert('Our records show you’ve already taken the quiz. Retakes aren’t allowed.');
+      }
+
+      startScreen.style.display = 'none';
+      quizScreen.style.display  = 'block';
+      loadQuestions();
+      startTimer(DURATION);
+    });
+
+    // --- LOAD QUESTIONS ---
+    function loadQuestions(){
+      quizCon.innerHTML = '';
+      questions = [];
+      db.ref('questions').once('value', snap => {
+        snap.forEach(child => {
+          const q = child.val();
+          q.id = child.key;
+          questions.push(q);
+          quizCon.innerHTML += `
+            <div class="question">
+              <h4>${q.question}</h4>
+              ${['opt1','opt2','opt3','opt4'].map(opt =>
+                `<label>
+                   <input type="radio" name="${q.id}" value="${opt}">
+                   ${q[opt]}
+                 </label>`
+              ).join('')}
+            </div>`;
         });
+      });
+    }
 
-        function submitQuize() {
-            if (!quizSubmitted) {
-                quizSubmitted = true;
-                alert("Quiz submitted successfully!");
-                submitQuiz()
-            }
-        }
+    // --- TIMER ---
+    function startTimer(sec){
+      let t = sec;
+      timerEl.textContent = formatTime(t);
+      timerInterval = setInterval(() => {
+        t--;
+        timerEl.textContent = formatTime(t);
+        if (t < 0) autoSubmit();
+      }, 1000);
+    }
+    function formatTime(s){
+      const m = Math.floor(s/60), sec = s%60;
+      return `Time Remaining: ${m}:${sec<10?'0':''}${sec}`;
+    }
 
-        var firebaseConfig = {
-            apiKey: "AIzaSyBXJ_RnfjUDi7qPDATWVnS5lSFw6jVRYgo",
-  authDomain: "shopping-e284c.firebaseapp.com",
-  databaseURL: "https://shopping-e284c-default-rtdb.firebaseio.com",
-  projectId: "shopping-e284c",
-  storageBucket: "shopping-e284c.appspot.com",
-  messagingSenderId: "248274428739",
-  appId: "1:248274428739:web:fc30dd9eb1ef83f610c5f6",
-  measurementId: "G-ZXZCK9BW7T"
-        };
+    // --- AUTO SUBMIT ---
+    function autoSubmit(){
+      clearInterval(timerInterval);
+      if (!quizSubmitted){
+        alert('Time’s up or tab-switch triggered — submitting now.');
+        submitQuiz();
+      }
+    }
 
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.database();
+    // --- SUBMIT QUIZ ---
+    submitBtn.addEventListener('click', submitQuiz);
+    function submitQuiz(){
+      if (quizSubmitted) return;
+      quizSubmitted = true;
+      clearInterval(timerInterval);
+      submitBtn.disabled = true;
 
-        let username = "";
-        let questions = [];
+      const name = document.getElementById('username').value.trim();
+      const roll = document.getElementById('roll').value.trim();
+      let score = 0;
+      questions.forEach(q => {
+        const sel = document.querySelector(`input[name="${q.id}"]:checked`);
+        if (sel?.value === q.answer) score++;
+      });
 
-        function startQuiz() {
-            username = document.getElementById("username").value.trim();
-            if (username === "") {
-                alert("Please enter your name to start the quiz");
-                return;
-            }
-            document.getElementById("username-container").style.display = "none";
-            document.getElementById("quiz-container").style.display = "block";
-            document.getElementById("submitBtn").style.display = "block";
-            loadQuestions();
-        }
-
-        function loadQuestions() {
-            let quizContainer = document.getElementById("quiz-container");
-            quizContainer.innerHTML = "";
-
-            db.ref("questions").once("value", (snapshot) => {
-                snapshot.forEach((childSnapshot) => {
-                    let q = childSnapshot.val();
-                    questions.push(q);
-                    let questionHtml = `
-                        <div class="question-container">
-                            <h3>${q.question}</h3>
-                            <label><input type="radio" name="${q.question}" value="${q.opt1}"> ${q.opt1}</label>
-                            <label><input type="radio" name="${q.question}" value="${q.opt2}"> ${q.opt2}</label>
-                            <label><input type="radio" name="${q.question}" value="${q.opt3}"> ${q.opt3}</label>
-                            <label><input type="radio" name="${q.question}" value="${q.opt4}"> ${q.opt4}</label>
-                        </div>`;
-                    quizContainer.innerHTML += questionHtml;
-                });
-            });
-        }
-
-        function submitQuiz() {
-            let score = 0;
-            quizSubmitted = true;
-            questions.forEach(q => {
-                let selected = document.querySelector(`input[name='${q.question}']:checked`);
-                if (selected && selected.value === q[q.answer]) {
-                    score++;
-                }
-            });
-            db.ref("responses/" + username).set({ score }).then(() => {
-                window.location.href = "/submited.html"
-            });
-        }
-    </script>
+      const lockKey = `quiz_done_${name}_${roll}`;
+      db.ref('responses/' + name).set({ roll, score })
+        .then(() => {
+          // lock out future attempts
+          localStorage.setItem(lockKey, 'true');
+          window.location.href = "/submited.html"
+          quizCon.innerHTML = '';
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Submit failed — check console.');
+        });
+    }
+  </script>
 </body>
 </html>

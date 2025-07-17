@@ -161,7 +161,7 @@
 <body>
 
   <!-- Landing Section -->
-  <section class="landing">
+  <section class="landing" id="landing">
     <h1>കൊടപ്പനക്കൽ - അഖില കേരള ഓൺലൈൻ ക്വിസ്</h1>
     <p>Test your knowledge. Stay focused. You only get one shot.</p>
   </section>
@@ -172,6 +172,7 @@
     <div id="start-screen">
       <input type="text" id="name" placeholder="Enter your name" />
       <input type="text" id="username" placeholder="Enter your Whatsapp number" />
+      <p style="margin-top: -20px;margin-bottom: 20px; padding-top: 0;"><i>Make Sure your Whatsapp Number Correct. Other wise your score will be lost.</i></p>
       <button id="startBtn">Start Quiz</button>
     </div>
 
@@ -220,10 +221,13 @@
     const submitBtn = document.getElementById('submitBtn');
     const quizCon = document.getElementById('quizContainer');
     const timerEl = document.getElementById('timer');
+    const landing = document.getElementById("landing");
 
 
 
     startBtn.addEventListener('click', () => {
+      landing.style.height = "100px";
+      landing.style.visibility = "hidden";
       const name = document.getElementById('username').value.trim();
       const roll = document.getElementById('name').value.trim();
       if (!name || !roll) return alert('Name & Roll Number required.');
@@ -283,7 +287,6 @@
     function autoSubmit() {
       clearInterval(timerInterval);
       if (!quizSubmitted) {
-        alert('Time’s up or tab-switch triggered — submitting now.');
         submitQuiz();
       }
     }

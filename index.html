@@ -299,10 +299,11 @@
 
     submitBtn.addEventListener('click', submitQuiz);
     function submitQuiz() {
-      localStorage.setItem("done", "true");
+      
       if (localStorage.getItem("done")) {
         window.location.href = "/already.html";
       } else {
+        localStorage.setItem("done", "true");
         if (quizSubmitted) return;
         quizSubmitted = true;
         clearInterval(timerInterval);

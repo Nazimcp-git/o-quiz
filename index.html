@@ -5,9 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam&display=swap" rel="stylesheet">
   <title>Online Quiz</title>
   <style>
     :root {
@@ -176,7 +177,8 @@
     <div id="start-screen">
       <input type="text" id="name" placeholder="Enter your name" />
       <input type="text" id="username" placeholder="Enter your Whatsapp number" />
-      <p style="margin-top: -20px;margin-bottom: 20px; padding-top: 0; font-size: 14px;"><i>Make Sure your Whatsapp Number Correct. Other
+      <p style="margin-top: -20px;margin-bottom: 20px; padding-top: 0; font-size: 14px;"><i>Make Sure your Whatsapp
+          Number Correct. Other
           wise your score will be lost.</i></p>
       <button id="startBtn">Start Quiz</button>
     </div>
@@ -246,35 +248,34 @@
     });
 
     function loadQuestions() {
-if (localStorage.getItem("done")) {
+      if (localStorage.getItem("done")) {
         window.location.href = "/already.html";
       } else {
-        // console
-        // ;
-      }
-      quizCon.innerHTML = '';
-      questions = [];
-      db.ref('questions').once('value', snap => {
-        snap.forEach(child => {
-          const q = child.val();
-          q.id = child.key;
-          questions.push(q);
-          quizCon.innerHTML += `
+        quizCon.innerHTML = '';
+        questions = [];
+        db.ref('questions').once('value', snap => {
+          snap.forEach(child => {
+            const q = child.val();
+            q.id = child.key;
+            questions.push(q);
+            quizCon.innerHTML += `
             <div class="question">
               <h4>${q.question}</h4>
               ${['opt1', 'opt2', 'opt3', 'opt4'].map(opt =>
-            `<label>
+              `<label>
                    <input type="radio" name="${q.id}" value="${opt}">
                    ${q[opt]}
                  </label>`
-          ).join('')}
+            ).join('')}
             </div>`;
+          });
         });
-      });
+      }
+
     }
 
     function startTimer(sec) {
-    
+
       let t = sec;
       timerEl.textContent = formatTime(t);
       timerInterval = setInterval(() => {
@@ -302,33 +303,32 @@ if (localStorage.getItem("done")) {
       if (localStorage.getItem("done")) {
         window.location.href = "/already.html";
       } else {
-        // console
-        // ;
-      }
-      if (quizSubmitted) return;
-      quizSubmitted = true;
-      clearInterval(timerInterval);
-      submitBtn.disabled = true;
+        if (quizSubmitted) return;
+        quizSubmitted = true;
+        clearInterval(timerInterval);
+        submitBtn.disabled = true;
 
-      const name = document.getElementById('username').value.trim();
-      const roll = document.getElementById('name').value.trim();
-      let score = 0;
-      questions.forEach(q => {
-        const sel = document.querySelector(`input[name="${q.id}"]:checked`);
-        if (sel?.value === q.answer) score++;
-      });
-
-      const lockKey = `quiz_done_${name}_${roll}`;
-      db.ref('responses/' + name).set({ roll, score })
-        .then(() => {
-          localStorage.setItem(lockKey, 'true');
-          window.location.href = "/submited.html";
-          quizCon.innerHTML = '';
-        })
-        .catch(err => {
-          console.error(err);
-          alert('Submit failed — check console.');
+        const name = document.getElementById('username').value.trim();
+        const roll = document.getElementById('name').value.trim();
+        let score = 0;
+        questions.forEach(q => {
+          const sel = document.querySelector(`input[name="${q.id}"]:checked`);
+          if (sel?.value === q.answer) score++;
         });
+
+        const lockKey = `quiz_done_${name}_${roll}`;
+        db.ref('responses/' + name).set({ roll, score })
+          .then(() => {
+            localStorage.setItem(lockKey, 'true');
+            window.location.href = "/submited.html";
+            quizCon.innerHTML = '';
+          })
+          .catch(err => {
+            console.error(err);
+            alert('Submit failed — check console.');
+          });
+      }
+
     }
   </script>
 </body>
